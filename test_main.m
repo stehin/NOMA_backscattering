@@ -113,8 +113,8 @@ for i=1:l_param
         scenario.link1 = l1;
         scenario.link2 = l2;
        
-        av_rx_snr1=snr_1(i);
-        av_rx_snr2=snr_2(i);
+        av_rx_snr1=snr_1(i,:);
+        av_rx_snr2=snr_2(i,:);
 
         [ber1_div,ber2_div,snr1,snr2,ber1,ber2,powering_rate1,powering_rate2,cum_bit_div,cum_bit] = multi_Shadowing_SIC(scenario,scenario.alpha,av_rx_snr1,av_rx_snr2,av_rx_sir,estim_err_var);
         BER1_SIC_MULTI(i,j) = ber1_div;
