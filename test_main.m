@@ -35,7 +35,8 @@ l2.mb_nakagami = 1;
 
 scenario.link2 = l2;
 
-alpha = 10;% alpha >= 1, path gain
+alpha = 5;% alpha >= 1, beta nella tesi: la potenza ricevuta dal tag, è alpha
+            %(beta) volte quella trasmessa P0
 scenario.alpha=alpha;
 
 Ptx0 = 0.2;

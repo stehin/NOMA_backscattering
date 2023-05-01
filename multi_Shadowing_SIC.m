@@ -145,14 +145,16 @@ function [ber1_div,ber2_div,SNR1,SNR2,ber1,ber2,powering_rate1,powering_rate2,cu
         
         backscattered_bits = backscattered_bits + 1;
         
-        %etimation error
+        %estimation error
         %Nel nostro caso perfetta stima di canale
         err = sqrt(estim_err_var)*(randn(1,2)+1i*randn(1,2))/sqrt(2);
-        pow_vector1 = av_rx_snr1; %SNR al RX1
-        pow_vector2 = av_rx_snr2; %SNR al RX2
+        pow_vector1 = av_rx_snr1; %SNR al RX1, è un vettore
+        pow_vector2 = av_rx_snr2; %SNR al RX2, è un vettore
             
         % Ordering the channel gains in order to assign the reflection
         % coefficients
+        %Il primo elemento di index1, indica quale tra tag1 e tag2 è il tag con
+        %realizzazione migliore del canale composto fino ad RX1
         [~,index1] = sort(abs(CH_vector1).^2,'descend');
         
         %Assigning the smallest reflection coefficient(Gamma2) to the user
@@ -161,6 +163,9 @@ function [ber1_div,ber2_div,SNR1,SNR2,ber1,ber2,powering_rate1,powering_rate2,cu
         pow_vector2(index1(2)) = db2pow(pow_vector2(index1(2)) - av_rx_sir)*Pn;
         pow_vector1(index1(1)) = db2pow(pow_vector1(index1(1)))*Pn; %potenza del segnale ricevuto da RX1 dal tag che ha guadagno maggiore
         pow_vector2(index1(1)) = db2pow(pow_vector2(index1(1)))*Pn;
+    
+        %Il primo elemento di index2, indica quale tra tag1 e tag2 è il tag con
+        %realizzazione migliore del canale composto fino ad RX2
         [~,index2] = sort(pow_vector2.*abs(CH_vector2).^2,'descend');
         
         y1 = sqrt(pow_vector1(index1(1))).*CH_vector1(index1(1)).*xmod(:,index1(1)) + sqrt(pow_vector1(index1(2))).*CH_vector1(index1(2)).*xmod(:,index1(2));
