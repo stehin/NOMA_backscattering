@@ -1,4 +1,4 @@
-function [ber1_div,ber2_div,SNR1,SNR2,ber1,ber2,powering_rate1,powering_rate2,cumulative_bits_div,cumulative_bits] = multi_Shadowing_SIC(scenario,alpha,av_rx_snr1,av_rx_snr2,av_rx_sir,estim_err_var)
+function [ber1_div,ber2_div,ber1,ber2,powering_rate1,powering_rate2,cumulative_bits_div,cumulative_bits] = multi_Shadowing_SIC(scenario,alpha,av_rx_snr1,av_rx_snr2,gamma_m, gamma_M,estim_err_var)
 
     % System parameters
     W = scenario.bandwidth; % available bandwidth [Hz]
@@ -138,8 +138,7 @@ function [ber1_div,ber2_div,SNR1,SNR2,ber1,ber2,powering_rate1,powering_rate2,cu
             CH_vector1 = [h11 h12]; % channel gains of the composite links
             CH_vector2 = [h21 h22];
         end
-        
-        %powered_index = [1 2]; %entrambi i tag backscatterano ?
+    
         bit_both_powered = bit_both_powered + 1; %Aggiorno il numero di casi in cui
         %entrambi i bit sono backscatterati
         
@@ -157,12 +156,16 @@ function [ber1_div,ber2_div,SNR1,SNR2,ber1,ber2,powering_rate1,powering_rate2,cu
         %realizzazione migliore del canale composto fino ad RX1
         [~,index1] = sort(abs(CH_vector1).^2,'descend');
         
-        %Assigning the smallest reflection coefficient(Gamma2) to the user
+        %Assigning the smallest reflection coefficient(gamma_m) to the user
         %experiencing the worst channel conditions
-        pow_vector1(index1(2)) = db2pow(pow_vector1(index1(2)) - av_rx_sir)*Pn;%a chi ha guadagno minore, toglie SIR
-        pow_vector2(index1(2)) = db2pow(pow_vector2(index1(2)) - av_rx_sir)*Pn;
-        pow_vector1(index1(1)) = db2pow(pow_vector1(index1(1)))*Pn; %potenza del segnale ricevuto da RX1 dal tag che ha guadagno maggiore
-        pow_vector2(index1(1)) = db2pow(pow_vector2(index1(1)))*Pn;
+    
+        pow_vector1(index1(2)) = db2pow(pow_vector1(index1(2)))*gamma_m*Pn; 
+        pow_vector2(index1(2)) = db2pow(pow_vector2(index1(2)))*gamma_m*Pn;
+    
+        %Assigning the largest reflection coefficient(gamma_M) to the user
+        %experiencing the best channel conditions
+        pow_vector1(index1(1)) = db2pow(pow_vector1(index1(1)))*gamma_M*Pn; 
+        pow_vector2(index1(1)) = db2pow(pow_vector2(index1(1)))*gamma_M*Pn;
     
         %Il primo elemento di index2, indica quale tra tag1 e tag2 è il tag con
         %realizzazione migliore del canale composto fino ad RX2
@@ -218,13 +221,13 @@ function [ber1_div,ber2_div,SNR1,SNR2,ber1,ber2,powering_rate1,powering_rate2,cu
             errors(index1(1)) = errors(index1(1)) + 1;
             conditioned_errors(index1(1)) = conditioned_errors(index1(1)) + 1;
         else
-            succ_bit(index1(1)) = succ_bit(index1(1)) + 1;   
+            succ_bit(index1(1)) = succ_bit(index1(1)) + 1;   %numero di bit del primo tag decodificati con successo da RX1
         end
         if not(isequal(xdec12,xmod(:,index1(2)))) %second bit in error
             errors(index1(2)) = errors(index1(2)) + 1;
             conditioned_errors(index1(2)) = conditioned_errors(index1(2)) + 1;
         else
-            succ_bit(index1(2)) = succ_bit(index1(2)) + 1;
+            succ_bit(index1(2)) = succ_bit(index1(2)) + 1; %numero di bit del secondo tag decodificati con successo da RX1
         end
     
         %Diversity
@@ -276,20 +279,13 @@ function [ber1_div,ber2_div,SNR1,SNR2,ber1,ber2,powering_rate1,powering_rate2,cu
     ber1 = errors(1)/backscattered_bits(1);%/bit_count;
     ber2 = errors(2)/backscattered_bits(2);%/bit_count;
     
-    % conditioned_ber1 = conditioned_errors(1)/bit_both_powered;
-    % conditioned_ber2 = conditioned_errors(2)/bit_both_powered;
-    
     powering_rate1 = bit_not_powered(1)/bit_count;
     powering_rate2 = bit_not_powered(2)/bit_count;
     
-    SNR1 = 1; %pow2db(mean(cond_snr1));
-    SNR2 = 1; %pow2db(mean(cond_snr2));
-    
-    %POW_DIFF = 1; %abs(SNR1 - SNR2);
-    
-    cumulative_bits_div = (succ_bit_div(1) + succ_bit_div(2))/(2*bit_count);%(succ_bit(1) + succ_bit(2))/(2*bit_count-bit_not_powered(1)-bit_not_powered(2));
-    cumulative_bits = (succ_bit(1) + succ_bit(2))/(2*bit_count);%(succ_bit(1) + succ_bit(2))/(2*bit_count-bit_not_powered(1)-bit_not_powered(2));
-    
+    %percentuale di bit decodificati con successo sfruttando la diversità (non distingue tra Tag1 e Tag2, è cumulativo)
+    cumulative_bits_div = (succ_bit_div(1) + succ_bit_div(2))/(2*bit_count);
+    %percentuale di bit decodificati con successo da RX1 (non distingue tra Tag1 e Tag2, è cumulativo)
+    cumulative_bits = (succ_bit(1) + succ_bit(2))/(2*bit_count); 
     end
     
     %Cicla sui 100000 bit, per i diversi 5 parametri del channel gain.

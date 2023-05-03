@@ -5,7 +5,6 @@ scenario.carrier_freq = 2e9; % carrier frequency in Hz
 scenario.bandwidth = 250e3; % bandwidth in Hz
 scenario.path_loss_exponent = 2.5; %
 scenario.noise_spectral_density = -174; % dBm
-scenario.harvesting_threshold = -35; % dBm %Da vedere
 scenario.phase_off = 1; %Offset, ambiguità di fase
 scenario.packet_length = 1;
 scenario.shadowing = 1;
@@ -17,25 +16,21 @@ sigma_lognormalNeper = sigma_lognormaldB*log(10)/10;
 
 % LINK1
 l1.sigma_nakagamif = 1;
-l1.sigma_nakagamib = 1; %stessa nakagami per RX1-tag1 e RX1-tag2?
+l1.sigma_nakagamib = 1; %stessa nakagami per RX1-tag1 e RX1-tag2
 l1.mf_nakagami = 4;
 l1.mb_nakagami = 1;
-% l1.sigma_lognormalf = sigma_lognormalNeper;
-% l1.sigma_lognormalb = sigma_lognormalNeper;
 
 scenario.link1 = l1;
 
-% LINK1
+% LINK2
 l2.sigma_nakagamif = 1;
-l2.sigma_nakagamib = 1; %stessa nakagami per RX2-tag1 e RX2-tag2?
+l2.sigma_nakagamib = 1; %stessa nakagami per RX2-tag1 e RX2-tag2
 l2.mf_nakagami = 4;
 l2.mb_nakagami = 1;
-% l2.sigma_lognormalf = sigma_lognormalNeper;
-% l2.sigma_lognormalb = sigma_lognormalNeper;
 
 scenario.link2 = l2;
 
-alpha = 5;% alpha >= 1, beta nella tesi: la potenza ricevuta dal tag, è alpha
+alpha = 10;% alpha >= 1, beta nella tesi: la potenza ricevuta dal tag, è alpha
             %(beta) volte quella trasmessa P0
 scenario.alpha=alpha;
 
@@ -73,8 +68,9 @@ snr_1=av_rx_snr.snr1;
 snr_2=av_rx_snr.snr2;
 
 
-gamma = 1; %é il coefficiente di riflessione di uno dei due tag, normalizzato ad 1 (in questo caso uguali)
-av_rx_sir = pow2db(1./gamma); %Il primo, ha Reflection coefficient=1, Ricorda SIR>=1
+gamma_m = 0.8;%é il coefficiente di riflessione del tag che sperimenta una realizzazione di canale peggiore
+gamma_M=1;%é il coefficiente di riflessione del tag che sperimenta una realizzazione di canale migliore
+
 
 
 estim_err_var = 0; %Ho una perfetta stima del canale, canale flat, stimo una volta e addio
@@ -84,13 +80,8 @@ l_param = length(HOM);
 
 BER1_SIC_MULTI = zeros(l_param,l_var);
 BER2_SIC_MULTI = zeros(l_param,l_var);
-CONDBER1_SIC = zeros(l_param,l_var);
-SNRCOND1_SIC = zeros(l_param,l_var);
-CONDBER2_SIC = zeros(l_param,l_var);
-SNRCOND2 = zeros(l_param,l_var);
 POW_RATE1 = zeros(l_param,l_var);
 POW_RATE2 = zeros(l_param,l_var);
-POW_DIFF = zeros(l_param,l_var);
 CUM_BIT_SIC_MULTI = zeros(l_param,l_var);
 BER1_SIC = zeros(l_param,l_var);
 BER2_SIC = zeros(l_param,l_var);
@@ -100,6 +91,9 @@ sigma = sigma_lognormalNeper;
 A=5.0130e-05;
 B=0.99994987;
 
+%seed per debug
+rng('default');
+rng(1);
 
 for i=1:l_param
     
@@ -108,12 +102,10 @@ for i=1:l_param
     %Sigmab è la matrice di correlazione    
         Sigmab_tag1 = sigma^2*[(A+B) (A*cos(theta_12_1(i))+B);...
         (A*cos(theta_12_1(i))+B) (A+B)]; 
-        %l1.sigma_lognormalf = sigma;
         l1.Sigmab = Sigmab_tag1;
 
         Sigmab_tag2 = sigma^2*[(A+B) (A*cos(theta_12_2(i))+B);...
         (A*cos(theta_12_2(i))+B) (A+B)]; 
-        %l2.sigma_lognormalf = sigma;
         l2.Sigmab = Sigmab_tag2;
         scenario.link1 = l1;
         scenario.link2 = l2;
@@ -122,15 +114,13 @@ for i=1:l_param
         av_rx_snr1=snr_1(i,:);
         av_rx_snr2=snr_2(i,:);
 
-        [ber1_div,ber2_div,snr1,snr2,ber1,ber2,powering_rate1,powering_rate2,cum_bit_div,cum_bit] = multi_Shadowing_SIC(scenario,scenario.alpha,av_rx_snr1,av_rx_snr2,av_rx_sir,estim_err_var);
+        [ber1_div,ber2_div,ber1,ber2,powering_rate1,powering_rate2,cum_bit_div,cum_bit] = multi_Shadowing_SIC(scenario,scenario.alpha,av_rx_snr1,av_rx_snr2,gamma_m,gamma_M,estim_err_var);
         BER1_SIC_MULTI(i,j) = ber1_div;
         BER2_SIC_MULTI(i,j) = ber2_div;
         BER1_SIC(i,j) = ber1;
         BER2_SIC(i,j) = ber2;
         POW_RATE1(i,j) = powering_rate1;
         POW_RATE2(i,j) = powering_rate2;
-        SNRCOND1(i,j) = snr1;
-        SNRCOND2(i,j) = snr2;
         CUM_BIT_SIC_MULTI(i,j) = cum_bit_div;
         CUM_BIT_SIC(i,j) = cum_bit;
     end
